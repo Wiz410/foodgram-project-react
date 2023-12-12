@@ -12,7 +12,7 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
   backend:
-    build: ../backend/
+    build: wiz410/foodgram_backend
     env_file: ../.env
     volumes:
       - static:/static/
@@ -21,12 +21,12 @@ services:
       - db
   frontend:
     build:
-      context: ../frontend
+      context: wiz410/foodgram_frontend
       dockerfile: Dockerfile
     volumes:
       - ../frontend/:/app/result_build/
   nginx:
-    image: nginx:1.19.3
+    image: wiz410/foodgram_gateway
     ports:
       - "80:80"
     volumes:
