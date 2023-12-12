@@ -133,7 +133,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             recipe = recipe_list[0]
-            favorite = Favorite.objects.filter(user=request.user, recipe=recipe)
+            favorite = Favorite.objects.filter(
+                user=request.user,
+                recipe=recipe
+            )
             if favorite.exists():
                 return Response(
                     {'error': f'Вы уже добавили {recipe} в избранное.'},
@@ -155,7 +158,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_404_NOT_FOUND
                 )
             recipe = recipe_list[0]
-            favorite = Favorite.objects.filter(user=request.user, recipe=recipe)
+            favorite = Favorite.objects.filter(
+                user=request.user,
+                recipe=recipe
+            )
             if favorite.exists():
                 favorite.delete()
                 return Response(status=status.HTTP_204_NO_CONTENT)
@@ -163,7 +169,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 {'error': 'Рецепта небыло в избранное.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-    
+
     @action(
         methods=['get'],
         detail=False,
@@ -171,7 +177,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def download_shopping_cart(self, request):
         ingredient_list = {}
-        ingredients = IngredientQuantity.objects.filter(recipe__shoppinglist__user=self.request.user)
+        ingredients = IngredientQuantity.objects.filter(
+            recipe__shoppinglist__user=self.request.user
+        )
         for ingredient in ingredients:
             name = ingredient.ingredient.name
             measurement_unit = ingredient.ingredient.measurement_unit
@@ -187,5 +195,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             m = data['m']
             message += f'{ingredient} {q} {m}\n'
         response = HttpResponse(message, content_type='text/plain')
-        response['Content-Disposition'] = f'attachment; filename="shopping-list.txt"'
+        response['Content-Disposition'] = (
+            'attachment; filename="shopping-list.txt"'
+        )
         return response
