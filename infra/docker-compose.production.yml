@@ -8,12 +8,12 @@ volumes:
 services:
   db:
     image: postgres:13
-    env_file: .env
+    env_file: ../.env
     volumes:
       - pg_data:/var/lib/postgresql/data
   backend:
     image: wiz410/foodgram_backend
-    env_file: .env
+    env_file: ../.env
     volumes:
       - static:/static/
       - media:/app/media/
@@ -24,7 +24,7 @@ services:
     volumes:
       - ../frontend/:/app/result_build/
   nginx:
-    image: wiz410/foodgram_gateway
+    image: nginx:1.19.3
     ports:
       - "80:80"
     volumes:
