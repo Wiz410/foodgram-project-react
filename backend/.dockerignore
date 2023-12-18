@@ -1,7 +1,0 @@
-venv
-env
-db.sqlite3
-.idea
-.vscode
-.env
-.git
