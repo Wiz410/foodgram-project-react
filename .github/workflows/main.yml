@@ -23,7 +23,7 @@ jobs:
     - name: Test with flake8
       run: python -m flake8 backend/
 
-  build_backend_to_dockerhub:
+  build_backend_and_push_to_docker_hub:
     runs-on: ubuntu-latest
     needs:
     - tests_backend
@@ -48,7 +48,7 @@ jobs:
   build_frontend_and_push_to_docker_hub:
     runs-on: ubuntu-latest
     needs:
-      - backend_lint
+      - tests_backend
 
     steps:
       - name: Check out the repo
