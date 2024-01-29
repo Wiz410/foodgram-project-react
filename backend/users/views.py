@@ -22,7 +22,7 @@ class FoodgramUserViewSet(UserViewSet):
     - Запросы `subscriptions/` доступны авторизованному пользователю.
     - Запросы `subscribe/` доступны авторизованному пользователю.
     - Запросы к остальным путям доступны любому пользователю.
-    Note:
+    Raise:
         - Не работает просмотр пользователя для анонима.
     """
     pagination_class = LimitOffsetPagination
