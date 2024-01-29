@@ -5,4 +5,4 @@ python manage.py migrate
 python manage.py foodgram_import
 python manage.py collectstatic --noinput
 cp -r /app/collected_static/. /staticfiles/
-gunicorn --bind 0.0.0.0:8005 foodgram.wsgi
+gunicorn --bind 0.0.0.0:9000 foodgram.wsgi
