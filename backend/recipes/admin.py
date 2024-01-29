@@ -28,10 +28,9 @@ class RecipeAdmin(admin.ModelAdmin):
         """
         if obj.image:
             url: str = obj.image.url
-            width: int = obj.image.width
-            height: int = obj.image.height
+            SIZE: int = 150
             return mark_safe(
-                f'<img src="{url}" width="{width}" height="{height}">'
+                f'<img src="{url}" width="{SIZE}" height="{SIZE}">'
             )
         return ''
 
