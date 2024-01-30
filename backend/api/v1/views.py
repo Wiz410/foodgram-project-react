@@ -52,7 +52,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     serializer_class = RecipeSerializer
     filterset_class = RecipeFilter
     pagination_class = RecipeAndSubscriptionPagination
-    permission_classes = [AuthorOrReadOnly,]
+    permission_classes = [AuthorOrReadOnly, ]
 
     def perform_create(
         self,
