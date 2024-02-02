@@ -7,12 +7,12 @@ from rest_framework.response import Response
 
 from recipes.models import (FavoriteRecipes, Ingredient, Recipe,
                             RecipeIngredientAmount, ShoppingList, Tag,)
-
+from . import constants as con
 from .filters import RecipeFilter
 from .paginations import RecipeAndSubscriptionPagination
 from .permissions import AuthorOrReadOnly
 from .serializers import IngredientSerializer, RecipeSerializer, TagSerializer
-from .tools import validate_favorite_and_shopping_list
+from .validators import validate_favorite_and_shopping_list
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -136,9 +136,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
             - request (Request): Запрос.
 
         Returns:
-            - HttpResponse: `txt` файл со списком ингредиентво.
+            - HttpResponse: `txt` файл со списком ингредиентов.
         """
-        HEAD_MESSAGE: str = 'Список покупок Foodgram'
         ingredients: dict = {}
         objs = RecipeIngredientAmount.objects.filter(
             recipe__shop_recipe__user=self.request.user
@@ -154,7 +153,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                     'amount': amount,
                     'measurement_unit': measurement_unit
                 }
-        message: str = f'{HEAD_MESSAGE}\n'
+        message: str = f'{con.VIEW_DOWNLOAD_HEAD}\n'
         for ingredient, data in ingredients.items():
             measurement_unit: str = data['measurement_unit']
             amount: int = data['amount']

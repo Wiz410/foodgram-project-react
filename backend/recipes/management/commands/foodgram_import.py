@@ -4,6 +4,7 @@ from typing import Any
 
 from django.core.management.base import BaseCommand
 
+from recipes import constants as con
 from recipes.models import Ingredient, Tag
 
 MODEL_PATH: tuple[tuple[Any, str]] = (
@@ -24,11 +25,11 @@ class Command(BaseCommand):
         >>> Импорт данных запущен
         >>> Импорт данных завершен
     """
-    help = 'Импорт данных для foodgram из csv в базу данных.'
+    help = con.COMMAND_HELP
 
     def handle(self, *args: Any, **options: Any) -> None:
         self.stdout.write(
-            'Импорт данных запущен',
+            con.COMMAND_START,
             self.style.SUCCESS
         )
         for model, path in MODEL_PATH:
@@ -66,6 +67,6 @@ class Command(BaseCommand):
                 )
             csv_file.close()
         self.stdout.write(
-            'Импорт данных завершен',
+            con.COMMAND_END,
             self.style.SUCCESS
         )

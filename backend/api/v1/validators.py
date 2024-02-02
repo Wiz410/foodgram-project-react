@@ -1,20 +1,27 @@
-from django.conf import settings
-from django.db.models.query import QuerySet
+from django.contrib.auth import get_user_model
 from rest_framework import serializers, status
+from rest_framework.exceptions import NotFound
+from rest_framework.request import Request
+from rest_framework.response import Response
 
-from recipes.models import FavoriteRecipes, Ingredient, ShoppingList, Tag
+from recipes.models import (FavoriteRecipes, Ingredient, Recipe, ShoppingList,
+                            Tag,)
+from . import constants as con
+from .tools import ShortRecipeSerialize
+
+User = get_user_model()
 
 
 def get_favorite_and_shopping_cart(
     model: FavoriteRecipes or ShoppingList,
-    user: settings.AUTH_USER_MODEL,
+    user: User,
     id: int
 ) -> bool:
     """Проверка избранного или списка покупок.
 
     Args:
         - model (FavoriteRecipes or ShoppingList): Модель для проверки.
-        - user (settings.AUTH_USER_MODEL): Пользователь.
+        - user (User): Пользователь.
         - id (int): ID рецепта.
 
     Returns:
@@ -45,39 +52,30 @@ def validate_ingredients(ingredients: list[dict[str, int]]) -> list:
     Returns:
         - list: Валидированный список ингредиентов и их количества.
     """
-    ERROR_NOT_INGREDIENTS: str = 'Нужно добавить ингредиент'
-    ERROR_NOT_FOUND_INGREDIENTS: str = 'Ингредиент не существует'
-    ERROR_NOT_COUNT: str = 'Укажите количество для ингредиента'
-    ERROR_DUPLICATE: str = 'Ингредиент повторяется'
     ingredient_list: list[dict[str, Ingredient or int] or None] = []
     duplicate: list[Ingredient or None] = []
     if not ingredients:
         raise serializers.ValidationError(
-            {'ingredients': ERROR_NOT_INGREDIENTS},
+            {'ingredients': con.VALIDATE_ERROR_NOT_INGREDIENTS},
             code=status.HTTP_400_BAD_REQUEST
         )
     for ingredient in ingredients:
-        current_ingredient: QuerySet[Ingredient] = Ingredient.objects.filter(
-            id=ingredient['id']
-        )
+        current_ingredient: Ingredient = Ingredient.objects.filter(
+            id=ingredient['ingredient']['id']
+        ).first()
         if not current_ingredient:
             raise serializers.ValidationError(
-                {'ingredients': ERROR_NOT_FOUND_INGREDIENTS},
+                {'ingredients': con.VALIDATE_ERROR_NOT_FOUND_INGREDIENTS},
                 code=status.HTTP_400_BAD_REQUEST
             )
-        elif int(ingredient['amount']) <= 0:
+        elif current_ingredient in duplicate:
             raise serializers.ValidationError(
-                {'ingredients': ERROR_NOT_COUNT},
+                {'ingredients': con.VALIDATE_ERROR_DUPLICATE_INGREDIENTS},
                 code=status.HTTP_400_BAD_REQUEST
             )
-        elif current_ingredient[0] in duplicate:
-            raise serializers.ValidationError(
-                {'ingredients': ERROR_DUPLICATE},
-                code=status.HTTP_400_BAD_REQUEST
-            )
-        duplicate.append(current_ingredient[0])
+        duplicate.append(current_ingredient)
         ingredient_list.append(
-            {'id': current_ingredient[0], 'amount': ingredient['amount']}
+            {'id': current_ingredient, 'amount': ingredient['amount']}
         )
     return ingredient_list
 
@@ -97,26 +95,91 @@ def validate_tags(tags: list[int]) -> list:
     Returns:
         - list: Валидированный список тегов.
     """
-    ERROR_NOT_TAGS: str = 'Нужно добавить тег'
-    ERROR_NOT_FOUND_TAGS: str = 'Тега не существует'
-    ERROR_DUPLICATE: str = 'Тег повторяется'
     duplicate: list[Tag or None] = []
     if not tags:
         raise serializers.ValidationError(
-            {'tags': ERROR_NOT_TAGS},
+            {'tags': con.VALIDATE_ERROR_NOT_TAGS},
             code=status.HTTP_400_BAD_REQUEST
         )
     for tag in tags:
-        current_tag: QuerySet[Tag] = Tag.objects.filter(id=tag)
+        current_tag: Tag = Tag.objects.filter(id=tag).first()
         if not current_tag:
             raise serializers.ValidationError(
-                {'tags': ERROR_NOT_FOUND_TAGS},
+                {'tags': con.VALIDATE_ERROR_NOT_FOUND_TAGS},
                 code=status.HTTP_400_BAD_REQUEST
             )
         elif tag in duplicate:
             raise serializers.ValidationError(
-                {'tags': ERROR_DUPLICATE},
+                {'tags': con.VALIDATE_ERROR_DUPLICATE_TAGS},
                 code=status.HTTP_400_BAD_REQUEST
             )
         duplicate.append(tag)
     return duplicate
+
+
+def validate_favorite_and_shopping_list(
+    request: Request,
+    method: str,
+    user: User,
+    model: any,
+    id: int
+) -> Response:
+    """Проверка и добавление рецепта в модель.
+
+    Args:
+        - request (Request): Запрос.
+        - method (str): Метод запроса.
+        - user (User): Пользователь.
+        - model (Model): Модель.
+        - id (int): ID рецепта.
+
+    Raises:
+        - Response:
+            - Рецепта не существует.
+            - Рецепта уже добавлен или удален.
+
+    Returns:
+        - Response: Добавление `post` или
+        удаление `delete` рецепта в модель.
+    """
+    recipe: Recipe = Recipe.objects.filter(id=id).first()
+    if method == 'POST':
+        if not recipe:
+            raise serializers.ValidationError(
+                {'error': con.VALIDATE_ERROR_NOT_FOUND_RECIPE},
+                code=status.HTTP_400_BAD_REQUEST
+            )
+        obj = model.objects.filter(
+            user=user,
+            recipe=recipe,
+        )
+        if obj.exists():
+            raise serializers.ValidationError(
+                {'error': con.VALIDATE_ERROR_ADD_RECIPE},
+                code=status.HTTP_400_BAD_REQUEST
+            )
+        obj = model.objects.create(
+            user=user,
+            recipe=recipe,
+        )
+        serializer = ShortRecipeSerialize(
+            recipe,
+            context={'request': request},
+        )
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    if not recipe:
+        raise NotFound(
+            {'error': con.VALIDATE_ERROR_NOT_FOUND_RECIPE},
+            code=status.HTTP_404_NOT_FOUND
+        )
+    obj = model.objects.filter(
+        user=user,
+        recipe=recipe,
+    )
+    if obj.exists():
+        obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    raise serializers.ValidationError(
+        {'error': con.VALIDATE_ERROR_DELETE_RECIPE},
+        code=status.HTTP_400_BAD_REQUEST,
+    )

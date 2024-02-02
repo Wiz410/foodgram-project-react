@@ -6,46 +6,41 @@ from rest_framework.validators import UniqueValidator
 
 from api.v1.tools import ShortRecipeSerialize
 from recipes.models import Recipe
-
+from . import constants as con
 from .models import Follow
 from .tools import get_follow
 
-USER = get_user_model()
-GET_USER = USER.objects.all()
-MAX_LENGTH_EMAIL: int = 254
-MAX_LENGTH_USERNAME: int = 150
+User = get_user_model()
+Get_user = User.objects.all()
 
 
 class FoodgramUserCreateSerializer(UserCreateSerializer):
     """Сериализатор регистрации пользователя для `Djoser`."""
     email = serializers.EmailField(
-        max_length=MAX_LENGTH_EMAIL,
+        max_length=con.MODEL_MAX_LENGTH_EMAIL,
         validators=[
             UniqueValidator(
-                GET_USER,
-                (
-                    'Пользователь с таким адресом электронной почты '
-                    'уже существует.'
-                )
+                Get_user,
+                con.SERIALIZER_ERROR_VALIDATE_UNIQUE_EMAIL,
             ),
         ]
     )
     username = serializers.CharField(
-        max_length=MAX_LENGTH_USERNAME,
+        max_length=con.MODEL_MAX_LENGTH_FIELD,
         validators=[
             UniqueValidator(
-                GET_USER,
-                'Пользователь с таким именем аккаунта уже существует.'
+                Get_user,
+                con.SERIALIZER_ERROR_VALIDATE_UNIQUE_USERNAME,
             ),
             RegexValidator(
                 r'^[\w.@+-]+\Z',
-                'Имя аккаунта указан не корректно',
+                con.MODEL_ERROR_VALIDATE_USERNAME,
             ),
         ]
     )
 
     class Meta:
-        model = USER
+        model = User
         fields = (
             'email',
             'id',
@@ -61,7 +56,7 @@ class FoodgramUserSerializer(UserSerializer):
     is_subscribed = serializers.SerializerMethodField()
 
     class Meta:
-        model = USER
+        model = User
         fields = (
             'email',
             'id',
@@ -71,11 +66,11 @@ class FoodgramUserSerializer(UserSerializer):
             'is_subscribed',
         )
 
-    def get_is_subscribed(self, obj: USER) -> bool:
+    def get_is_subscribed(self, obj: User) -> bool:
         """Проверка подписки на пользователя.
 
         Args:
-            - obj (USER): Модель пользователя.
+            - obj (User): Модель пользователя.
 
         Returns:
             - bool: Подписан пользователь или нет.
@@ -84,6 +79,7 @@ class FoodgramUserSerializer(UserSerializer):
 
 
 class FollowSerializer(serializers.ModelSerializer):
+    """Сериализатор подписок пользователей."""
     email = serializers.EmailField(
         source='following.email',
         read_only=True
@@ -125,14 +121,22 @@ class FollowSerializer(serializers.ModelSerializer):
         """Проверка подписки на пользователя.
 
         Args:
-            - obj (USER): Модель пользователя.
+            - obj (Follow): Модель подписок.
 
         Returns:
             - bool: Подписан пользователь или нет.
         """
         return get_follow(self.context['request'].user, obj.following)
 
-    def get_recipes(self, obj):
+    def get_recipes(self, obj: Follow) -> ShortRecipeSerialize:
+        """Получение ограниченного количества рецептов автора.
+
+        Args:
+            obj (Follow): Модель подписок.
+
+        Returns:
+            ShortRecipeSerialize: Ограниченного количества рецептов автора.
+        """
         limit = self.context.get(
             'request'
         ).query_params.get('recipes_limit')
@@ -141,5 +145,14 @@ class FollowSerializer(serializers.ModelSerializer):
             recipe = recipe[:int(limit)]
         return ShortRecipeSerialize(recipe, many=True).data
 
-    def get_recipes_count(self, obj):
+    def get_recipes_count(self, obj: Follow) -> int:
+        """Количество рецептов.
+
+
+        Args:
+            obj (Follow): Модель подписок.
+
+        Returns:
+            int: Количество рецептов у автора.
+        """
         return obj.following.recipe_author.count()

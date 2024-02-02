@@ -2,12 +2,15 @@ import base64
 from collections import OrderedDict
 
 from django.core.files.base import ContentFile
+from django.core.validators import MaxValueValidator, MinValueValidator
 from rest_framework import serializers
 
+from recipes.constants import (MODEL_MAX_AMOUNT, MODEL_MAX_COOKING_TIME,
+                               MODEL_MIN_VALUE,)
 from recipes.models import (FavoriteRecipes, Ingredient, Recipe,
                             RecipeIngredientAmount, ShoppingList, Tag,)
 from users.serializers import FoodgramUserSerializer
-
+from .tools import ingredients_bulk_create
 from .validators import (get_favorite_and_shopping_cart, validate_ingredients,
                          validate_tags,)
 
@@ -49,9 +52,16 @@ class IngredientSerializer(serializers.ModelSerializer):
 class RecipeIngredientAmountSerializer(serializers.ModelSerializer):
     """Сериализатор дополнительной модели ингредиентов для рецептов."""
     id = serializers.IntegerField(source='ingredient.id')
-    name = serializers.CharField(source='ingredient.name')
+    name = serializers.CharField(source='ingredient.name', read_only=True)
     measurement_unit = serializers.CharField(
-        source='ingredient.measurement_unit'
+        source='ingredient.measurement_unit',
+        read_only=True,
+    )
+    amount = serializers.IntegerField(
+        validators=[
+            MaxValueValidator(MODEL_MAX_AMOUNT),
+            MinValueValidator(MODEL_MIN_VALUE),
+        ],
     )
 
     class Meta:
@@ -72,10 +82,15 @@ class RecipeSerializer(serializers.ModelSerializer):
     ingredients = RecipeIngredientAmountSerializer(
         many=True,
         source='amount_recipe',
-        read_only=True,
     )
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
+    cooking_time = serializers.IntegerField(
+        validators=[
+            MaxValueValidator(MODEL_MAX_COOKING_TIME),
+            MinValueValidator(MODEL_MIN_VALUE)
+        ],
+    )
 
     class Meta:
         model = Recipe
@@ -132,8 +147,9 @@ class RecipeSerializer(serializers.ModelSerializer):
             - OrderedDict: Валидированные данные.
         """
         data['ingredients'] = validate_ingredients(
-            self.initial_data.get('ingredients')
+            data.get('amount_recipe')
         )
+        data.pop('amount_recipe')
         data['tags'] = validate_tags(
             self.initial_data.get('tags')
         )
@@ -152,14 +168,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         tags = validated_data.pop('tags')
         recipe: Recipe = Recipe.objects.create(**validated_data)
         recipe.tags.set(tags)
-        RecipeIngredientAmount.objects.bulk_create(
-            RecipeIngredientAmount(
-                recipe=recipe,
-                ingredient=ingredient['id'],
-                amount=ingredient['amount']
-            )
-            for ingredient in ingredients
-        )
+        ingredients_bulk_create(recipe, ingredients)
         return recipe
 
     def update(self, instance: Recipe, validated_data: dict) -> Recipe:
@@ -176,14 +185,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         instance.tags.set(tags)
         ingredients = validated_data.pop('ingredients')
         RecipeIngredientAmount.objects.filter(recipe=instance).delete()
-        RecipeIngredientAmount.objects.bulk_create(
-            RecipeIngredientAmount(
-                recipe=instance,
-                ingredient=ingredient['id'],
-                amount=ingredient['amount']
-            )
-            for ingredient in ingredients
-        )
+        ingredients_bulk_create(instance, ingredients)
         instance.name = validated_data.get('name', instance.name)
         instance.image = validated_data.get('image', instance.image)
         instance.text = validated_data.get('text', instance.text)

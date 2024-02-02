@@ -3,48 +3,58 @@ from django.core.validators import RegexValidator
 from django.db import models
 from django.db.models import UniqueConstraint
 
-MAX_LENGTH_EMAIL: int = 254
-MAX_LENGTH_FIELD: int = 150
-HELP_MESSAGE_REQUIRED: str = 'Обязательно для заполнения, '
-HELP_MESSAGE_MAX: str = 'не более 150 символов.'
+from . import constants as con
 
 
 class FoodgramUser(AbstractUser):
     """Модель пользователя `Foodgram`."""
     email = models.EmailField(
-        'Электронная почта',
-        max_length=MAX_LENGTH_EMAIL,
+        con.MODEL_NAME_EMAIL,
+        max_length=con.MODEL_MAX_LENGTH_EMAIL,
         unique=True,
         help_text=(
-            f'{HELP_MESSAGE_REQUIRED} не более 254 символов.'
+            f'{con.MODEL_HELP_REQUIRED}'
+            f'{con.MODEL_HELP_MAX_EMAIL}'
         ),
     )
     username = models.CharField(
-        'Имя аккаунта',
-        max_length=MAX_LENGTH_FIELD,
+        con.MODEL_NAME_USERNAME,
+        max_length=con.MODEL_MAX_LENGTH_FIELD,
         unique=True,
-        help_text=f'{HELP_MESSAGE_REQUIRED}{HELP_MESSAGE_MAX}',
+        help_text=(
+            f'{con.MODEL_HELP_REQUIRED}'
+            f'{con.MODEL_HELP_MAX_FIELD}'
+        ),
         validators=[
             RegexValidator(
                 r'^[\w.@+-]+\Z',
-                'Имя аккаунта указан не корректно',
+                con.MODEL_ERROR_VALIDATE_USERNAME,
             ),
         ]
     )
     first_name = models.CharField(
-        'Имя',
-        max_length=MAX_LENGTH_FIELD,
-        help_text=f'{HELP_MESSAGE_REQUIRED}{HELP_MESSAGE_MAX}',
+        con.MODEL_NAME_FIRST_NAME,
+        max_length=con.MODEL_MAX_LENGTH_FIELD,
+        help_text=(
+            f'{con.MODEL_HELP_REQUIRED}'
+            f'{con.MODEL_HELP_MAX_FIELD}'
+        ),
     )
     last_name = models.CharField(
-        'Фамилия',
-        max_length=MAX_LENGTH_FIELD,
-        help_text=f'{HELP_MESSAGE_REQUIRED}{HELP_MESSAGE_MAX}',
+        con.MODEL_NAME_LAST_NAME,
+        max_length=con.MODEL_MAX_LENGTH_FIELD,
+        help_text=(
+            f'{con.MODEL_HELP_REQUIRED}'
+            f'{con.MODEL_HELP_MAX_FIELD}'
+        ),
     )
     password = models.CharField(
-        'Пароль',
-        max_length=MAX_LENGTH_FIELD,
-        help_text=f'{HELP_MESSAGE_REQUIRED}{HELP_MESSAGE_MAX}',
+        con.MODEL_NAME_PASSWORD,
+        max_length=con.MODEL_MAX_LENGTH_FIELD,
+        help_text=(
+            f'{con.MODEL_HELP_REQUIRED}'
+            f'{con.MODEL_HELP_MAX_FIELD}'
+        ),
     )
 
     USERNAME_FIELD: str = 'email'
@@ -75,15 +85,15 @@ class Follow(models.Model):
         FoodgramUser,
         on_delete=models.CASCADE,
         related_name='follow_user',
-        verbose_name='Пользователь',
-        help_text='Пользователь который подписан.',
+        verbose_name=con.MODEL_NAME_USER,
+        help_text=con.MODEL_HELP_USER,
     )
     following = models.ForeignKey(
         FoodgramUser,
         on_delete=models.CASCADE,
         related_name='follow_following',
-        verbose_name='Подписан на пользователя',
-        help_text='Пользователь на которого подписаны.',
+        verbose_name=con.MODEL_NAME_FOLLOWING,
+        help_text=con.MODEL_HELP_FOLLOWING,
     )
 
     class Meta:

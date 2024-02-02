@@ -10,7 +10,7 @@ from rest_framework.response import Response
 
 from api.v1.paginations import RecipeAndSubscriptionPagination
 from users.models import Follow
-
+from . import constants as con
 from .serializers import FollowSerializer
 
 User = get_user_model()
@@ -89,24 +89,23 @@ class FoodgramUserViewSet(UserViewSet):
         if request.method == 'POST':
             if request.user == author:
                 return Response(
-                    {'errors': 'Нельзя подписаться на себя'},
+                    {'errors': con.VIEW_ERROR_FOLLOW_YOURSELF},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             elif follow.exists():
                 return Response(
-                    {'error': 'Вы уже подписаны на пользователя'},
+                    {'error': con.VIEW_ERROR_FOLLOW_ALREADY},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             follow = Follow.objects.create(user=request.user, following=author)
             serializer = FollowSerializer(follow, context={'request': request})
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        else:
-            if follow.exists():
-                follow.delete()
-                return Response(
-                    status=status.HTTP_204_NO_CONTENT
-                )
+        if follow.exists():
+            follow.delete()
             return Response(
-                {'error': 'Вы не были подписаны на пользователя'},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_204_NO_CONTENT
             )
+        return Response(
+            {'error': con.VIEW_ERROR_FOLLOW_WERE_NOT},
+            status=status.HTTP_400_BAD_REQUEST
+        )

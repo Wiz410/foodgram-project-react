@@ -3,23 +3,16 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import UniqueConstraint
 
+from . import constants as con
 from .tools import minutes_to_hours
-
-MAX_LENGTH_FIELD: int = 150
-MAX_LENGTH_TAG: int = 20
-MAX_COOKING_TIME: int = 720
-MAX_AMOUNT: int = 9999
-MIN_VALUE: int = 1
-ERROR_COOKING_TIME_MESSAGE: str = 'Время приготовления не может быть'
-ERROR_AMOUNT_MESSAGE: str = 'Количество ингредиента не может быть'
 
 
 class NameModel(models.Model):
     """Абстрактная модель добавляет поле `name`."""
     name = models.CharField(
-        'Название',
-        max_length=MAX_LENGTH_FIELD,
-        help_text=f'Не более {MAX_LENGTH_FIELD} символов.',
+        con.MODEL_NAME_NAME,
+        max_length=con.MODEL_MAX_LENGTH_FIELD,
+        help_text=f'Не более {con.MODEL_MAX_LENGTH_FIELD} символов.',
     )
 
     class Meta:
@@ -29,22 +22,22 @@ class NameModel(models.Model):
 class Tag(models.Model):
     """Модель тегов."""
     name = models.CharField(
-        'Название тега',
-        max_length=MAX_LENGTH_TAG,
+        con.MODEL_NAME_NAME_TAG,
+        max_length=con.MODEL_MAX_LENGTH_TAG,
         unique=True,
-        help_text=f'Не более {MAX_LENGTH_TAG} символов.',
+        help_text=f'Не более {con.MODEL_MAX_LENGTH_TAG} символов.',
     )
     color = models.CharField(
-        'Цвет',
-        max_length=MAX_LENGTH_TAG,
+        con.MODEL_NAME_COLOR,
+        max_length=con.MODEL_MAX_LENGTH_TAG,
         unique=True,
         help_text='В формате HEX.',
     )
     slug = models.SlugField(
-        'Слаг',
-        max_length=MAX_LENGTH_TAG,
+        con.MODEL_NAME_SLUG,
+        max_length=con.MODEL_MAX_LENGTH_TAG,
         unique=True,
-        help_text=f'Не более {MAX_LENGTH_TAG} символов.',
+        help_text=f'Не более {con.MODEL_MAX_LENGTH_TAG} символов.',
     )
 
     class Meta:
@@ -62,9 +55,9 @@ class Tag(models.Model):
 class Ingredient(NameModel):
     """Модель ингредиентов."""
     measurement_unit = models.CharField(
-        'Измерение ингредиента',
-        max_length=MAX_LENGTH_FIELD,
-        help_text=f'Не более {MAX_LENGTH_FIELD} символов.',
+        con.MODEL_NAME_MEASUREMENT_UNIT,
+        max_length=con.MODEL_MAX_LENGTH_FIELD,
+        help_text=f'Не более {con.MODEL_MAX_LENGTH_FIELD} символов.',
     )
 
     class Meta:
@@ -84,54 +77,59 @@ class Recipe(NameModel):
     tags = models.ManyToManyField(
         Tag,
         related_name='recipe_tag',
-        verbose_name='Теги',
+        verbose_name=con.MODEL_NAME_TAGS,
         help_text='Теги для рецепта.',
     )
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='recipe_author',
-        verbose_name='Автор',
+        verbose_name=con.MODEL_NAME_AUTHOR,
         help_text='Автор рецепта.',
     )
     ingredients = models.ManyToManyField(
         Ingredient,
         through='RecipeIngredientAmount',
         related_name='recipe_ingredient',
-        verbose_name='Ингредиенты',
+        verbose_name=con.MODEL_NAME_INGREDIENTS,
         help_text='Ингредиенты в рецепте.',
     )
     image = models.ImageField(
-        'Изображение',
+        con.MODEL_NAME_IMAGE,
         upload_to='recipe/images/',
         help_text='Изображение рецепта.',
     )
     text = models.TextField(
-        'Описание',
+        con.MODEL_NAME_TEXT,
         help_text='Описание приготовление рецепта.',
     )
     cooking_time = models.PositiveSmallIntegerField(
-        'Время приготовления',
+        con.MODEL_NAME_COOKING_TIME,
         help_text=(
-            f'Не мение {MIN_VALUE} минуты и не более {MAX_COOKING_TIME} '
-            f'минут{minutes_to_hours(MAX_COOKING_TIME)}.'
+            f'Не мение {con.MODEL_MIN_VALUE} минуты и '
+            f'не более {con.MODEL_MAX_COOKING_TIME} '
+            f'минут{minutes_to_hours(con.MODEL_MAX_COOKING_TIME)}.'
         ),
         validators=[
             MaxValueValidator(
-                MAX_COOKING_TIME,
+                con.MODEL_MAX_COOKING_TIME,
                 (
-                    f'{ERROR_COOKING_TIME_MESSAGE} более {MAX_COOKING_TIME} '
-                    f'минут{minutes_to_hours(MAX_COOKING_TIME)}.'
-                )
+                    f'{con.MODEL_ERROR_COOKING_TIME} '
+                    f'более {con.MODEL_MAX_COOKING_TIME} '
+                    f'минут{minutes_to_hours(con.MODEL_MAX_COOKING_TIME)}.'
+                ),
             ),
             MinValueValidator(
-                MIN_VALUE,
-                f'{ERROR_COOKING_TIME_MESSAGE} менее {MIN_VALUE} минуты.'
+                con.MODEL_MIN_VALUE,
+                (
+                    f'{con.MODEL_ERROR_COOKING_TIME} '
+                    f'менее {con.MODEL_MIN_VALUE} минуты.'
+                ),
             ),
         ],
     )
     pub_data = models.DateTimeField(
-        'Дата публикации',
+        con.MODEL_NAME_PUB_DATA,
         auto_now_add=True,
         help_text='Добавляется автоматически.',
     )
@@ -156,25 +154,28 @@ class RecipeIngredientAmount(models.Model):
         Recipe,
         on_delete=models.CASCADE,
         related_name='amount_recipe',
-        verbose_name='Рецепт',
+        verbose_name=con.MODEL_NAME_RECIPE,
     )
     ingredient = models.ForeignKey(
         Ingredient,
         on_delete=models.CASCADE,
         related_name='amount_ingredient',
-        verbose_name='Ингредиенты',
+        verbose_name=con.MODEL_NAME_INGREDIENTS,
     )
     amount = models.PositiveSmallIntegerField(
-        'Количество',
-        help_text=f'Не менее {MIN_VALUE} и не более {MAX_AMOUNT}.',
+        con.MODEL_NAME_AMOUNT,
+        help_text=(
+            f'Не менее {con.MODEL_MIN_VALUE} '
+            f'и не более {con.MODEL_MAX_AMOUNT}.'
+        ),
         validators=[
             MaxValueValidator(
-                MAX_AMOUNT,
-                f'{ERROR_AMOUNT_MESSAGE} более {MAX_AMOUNT}.'
+                con.MODEL_MAX_AMOUNT,
+                f'{con.MODEL_ERROR_AMOUNT} более {con.MODEL_MAX_AMOUNT}.'
             ),
             MinValueValidator(
-                MIN_VALUE,
-                f'{ERROR_AMOUNT_MESSAGE} менее {MIN_VALUE}.'
+                con.MODEL_MIN_VALUE,
+                f'{con.MODEL_ERROR_AMOUNT} менее {con.MODEL_MIN_VALUE}.'
             ),
         ],
     )
@@ -207,13 +208,13 @@ class FavoriteRecipes(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='favorite_user',
-        verbose_name='Пользователь',
+        verbose_name=con.MODEL_NAME_USER,
     )
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
         related_name='favorite_recipe',
-        verbose_name='Рецепт',
+        verbose_name=con.MODEL_NAME_RECIPE,
     )
 
     class Meta:
@@ -241,13 +242,13 @@ class ShoppingList(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='shop_user',
-        verbose_name='Пользователь',
+        verbose_name=con.MODEL_NAME_USER,
     )
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
         related_name='shop_recipe',
-        verbose_name='Рецепт',
+        verbose_name=con.MODEL_NAME_RECIPE,
     )
 
     class Meta:

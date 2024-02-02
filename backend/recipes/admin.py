@@ -1,23 +1,25 @@
 from django.contrib import admin
 from django.utils.safestring import SafeString, mark_safe
 
+from . import constants as con
 from .models import (FavoriteRecipes, Ingredient, Recipe,
                      RecipeIngredientAmount, ShoppingList, Tag,)
 
-admin.site.empty_value_display = 'Не задано'
+admin.site.empty_value_display = con.ADMIN_EMPTY_VALUE
 
 
 class RecipeIngredientAmountAdmin(admin.StackedInline):
     """Регистрация дополнительной модели для рецептов в админ-зоне."""
     model = RecipeIngredientAmount
     extra = 1
+    min_num = 1
 
 
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
     """Регистрация модели рецептов в админ-зоне."""
 
-    @admin.display(description='Пример изображения')
+    @admin.display(description=con.ADMIN_NAME_GET_IMAGE)
     def get_image(self, obj: Recipe) -> SafeString:
         """Получение изображения в админ-зону.
         Args:
@@ -28,13 +30,14 @@ class RecipeAdmin(admin.ModelAdmin):
         """
         if obj.image:
             url: str = obj.image.url
-            SIZE: int = 150
             return mark_safe(
-                f'<img src="{url}" width="{SIZE}" height="{SIZE}">'
+                f'<img src="{url}" '
+                f'width="{con.ADMIN_SIZE_IMAGE}" '
+                f'height="{con.ADMIN_SIZE_IMAGE}">'
             )
         return ''
 
-    @admin.display(description='В избранном')
+    @admin.display(description=con.ADMIN_NAME_GET_FAVORITE_COUNT)
     def get_favorite_count(self, obj: Recipe) -> int:
         """Число добавлений в избранное.
 

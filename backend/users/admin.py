@@ -1,9 +1,10 @@
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 
+from .constants import ADMIN_EMPTY_VALUE
 from .models import Follow
 
-admin.site.empty_value_display = 'Не задано'
+admin.site.empty_value_display = ADMIN_EMPTY_VALUE
 
 
 @admin.register(get_user_model())
