@@ -86,8 +86,8 @@ docker compose up
 ```json
 {
   "count": 1,
-  "next": None,
-  "previous": None,
+  "next": null,
+  "previous": null,
   "results": [
     {
       "email": "user@example.com",
@@ -105,8 +105,8 @@ docker compose up
 ```json
 {
   "count": 1,
-  "next": None,
-  "previous": None,
+  "next": null,
+  "previous": null,
   "results": [
     {
       "id": 0,
@@ -186,8 +186,8 @@ docker compose up
 ```json
 {
   "count": 1,
-  "next": None,
-  "previous": None,
+  "next": null,
+  "previous": null,
   "results": [
     {
       "email": "user@example.com",
