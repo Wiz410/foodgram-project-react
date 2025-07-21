@@ -31,6 +31,7 @@ cd foodgram-project-react/
 Создайте файл `.env`:
 ```bash
 touch .env
+nano .env
 ```
 И заполните его:
 ```
@@ -44,10 +45,12 @@ FOODGRAM_DEBUG=False
 FOODGRAM_ALLOWED_HOSTS=127.0.0.1 localhost
 FOODGRAM_TIME_ZONE=UTC
 ```
+Сохраните ctrl + s выйдите из него ctrl + x.
+
 Перейдите в директорию `infra` и запустите `Docker Compose`:
 ```bash
 cd infra/
-docker compose up
+docker compose up --build
 ```
 Проект будет доступен по адресу http://localhost/
 
